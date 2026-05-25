@@ -2,60 +2,192 @@ const express = require('express');
 const router = express.Router();
 const Groq = require('groq-sdk');
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
+});
 
-router.post('/analyse', async (req, res) => {
-  const { jobTitle, skills, experience, education } = req.body;
+// -------------------------
+// Validation helper
+// -------------------------
+function validatePayload(body) {
+  const errors = [];
 
-  if (!jobTitle || !skills) {
-    return res.status(400).json({ error: 'jobTitle and skills are required' });
+  if (!body.jobTitle || !body.jobTitle.trim()) {
+    errors.push('jobTitle is required.');
+  } else if (body.jobTitle.trim().length < 2) {
+    errors.push('jobTitle must be at least 2 characters.');
   }
 
-  const prompt = `
+  if (!body.skills || !body.skills.trim()) {
+    errors.push('skills is required.');
+  }
+
+  return errors;
+}
+
+// -------------------------
+// Sanitise helper
+// Prevent huge payloads
+// -------------------------
+function sanitise(value) {
+  if (!value) return '';
+
+  return String(value)
+    .trim()
+    .slice(0, 2000);
+}
+
+// -------------------------
+// Safe AI response parser
+// -------------------------
+function safeParseGroqResponse(raw) {
+  const match = raw.match(/\{[\s\S]*\}/);
+
+  if (!match) {
+    throw new Error('No JSON in AI response');
+  }
+
+  const parsed = JSON.parse(match[0]);
+
+  return {
+    requiredSkills: Array.isArray(parsed.requiredSkills)
+      ? parsed.requiredSkills
+      : [],
+
+    missingSkills: Array.isArray(parsed.missingSkills)
+      ? parsed.missingSkills
+      : [],
+
+    score:
+      typeof parsed.score === 'number'
+        ? Math.min(10, Math.max(0, parsed.score))
+        : 5,
+
+    tips: Array.isArray(parsed.tips)
+      ? parsed.tips
+      : [],
+
+    professionalSummary:
+      typeof parsed.professionalSummary === 'string'
+        ? parsed.professionalSummary
+        : '',
+  };
+}
+
+router.post('/analyse', async (req, res) => {
+  try {
+    // -------------------------
+    // Validate input
+    // -------------------------
+    const errors = validatePayload(req.body);
+
+    if (errors.length > 0) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors,
+      });
+    }
+
+    // -------------------------
+    // Sanitise input
+    // -------------------------
+    const jobTitle = sanitise(req.body.jobTitle);
+    const skills = sanitise(req.body.skills);
+    const experience = sanitise(req.body.experience);
+    const education = sanitise(req.body.education);
+
+    const prompt = `
 You are an expert career counsellor and resume coach.
 
 A job seeker is targeting the role of: "${jobTitle}"
-Their current skills: ${skills}
-Experience: ${experience || 'Not provided'}
-Education: ${education || 'Not provided'}
+
+Their current skills:
+${skills}
+
+Experience:
+${experience || 'Not provided'}
+
+Education:
+${education || 'Not provided'}
 
 Your task:
-1. Identify the top skills required for "${jobTitle}" in the current job market
-2. Identify the skill gaps (skills they are missing)
-3. Give a resume score out of 10
-4. Give 3-5 specific, actionable improvement tips
-5. Suggest a professional summary they can use
+1. Identify top skills required
+2. Identify missing skills
+3. Give resume score out of 10
+4. Give 3–5 actionable tips
+5. Suggest professional summary
 
-Respond ONLY in this JSON format with no extra text:
+Respond ONLY in JSON format:
+
 {
-  "requiredSkills": ["skill1", "skill2"],
-  "missingSkills": ["skill1", "skill2"],
+  "requiredSkills": ["skill1"],
+  "missingSkills": ["skill1"],
   "score": 7,
-  "tips": ["tip1", "tip2", "tip3"],
-  "professionalSummary": "A motivated..."
+  "tips": ["tip1"],
+  "professionalSummary": "summary"
 }
 `;
 
-  try {
-    const completion = await groq.chat.completions.create({
-      model: 'llama-3.1-8b-instant',
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.7,
-      max_tokens: 1000,
-    });
+    const completion =
+      await groq.chat.completions.create({
+        model: 'llama-3.1-8b-instant',
+        messages: [
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 1000,
+      });
 
-    const raw = completion.choices[0]?.message?.content || '';
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return res.status(500).json({ error: 'Invalid AI response format' });
-    }
+    const raw =
+      completion.choices?.[0]?.message?.content || '';
 
-    const analysis = JSON.parse(jsonMatch[0]);
-    res.json(analysis);
+    const analysis =
+      safeParseGroqResponse(raw);
 
+    return res.json(analysis);
   } catch (err) {
     console.error('Error:', err.message);
-    res.status(500).json({ error: 'Analysis failed', details: err.message });
+
+    // Invalid API key
+    if (
+      err.message?.toLowerCase().includes('api key')
+    ) {
+      return res.status(500).json({
+        error: 'Invalid API key.',
+      });
+    }
+
+    // Rate limit
+    if (
+      err.status === 429 ||
+      err.message?.toLowerCase().includes('rate')
+    ) {
+      return res.status(429).json({
+        error:
+          'Rate limit reached. Wait a moment.',
+      });
+    }
+
+    // AI parse failure
+    if (
+      err.message?.includes(
+        'No JSON in AI response'
+      )
+    ) {
+      return res.status(502).json({
+        error:
+          'AI response format was invalid.',
+      });
+    }
+
+    // Generic fallback
+    return res.status(500).json({
+      error:
+        'Analysis failed. Please try again.',
+    });
   }
 });
 
