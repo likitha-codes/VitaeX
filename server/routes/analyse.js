@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Groq = require('groq-sdk');
+const Resume = require('../models/Resume');
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
@@ -27,14 +28,10 @@ function validatePayload(body) {
 
 // -------------------------
 // Sanitise helper
-// Prevent huge payloads
 // -------------------------
 function sanitise(value) {
   if (!value) return '';
-
-  return String(value)
-    .trim()
-    .slice(0, 2000);
+  return String(value).trim().slice(0, 2000);
 }
 
 // -------------------------
@@ -50,47 +47,30 @@ function safeParseGroqResponse(raw) {
   const parsed = JSON.parse(match[0]);
 
   return {
-    requiredSkills: Array.isArray(parsed.requiredSkills)
-      ? parsed.requiredSkills
-      : [],
+    requiredSkills: Array.isArray(parsed.requiredSkills) ? parsed.requiredSkills : [],
+    missingSkills: Array.isArray(parsed.missingSkills) ? parsed.missingSkills : [],
 
-    missingSkills: Array.isArray(parsed.missingSkills)
-      ? parsed.missingSkills
-      : [],
-
+    // FIX: score is now out of 100
     score:
       typeof parsed.score === 'number'
-        ? Math.min(10, Math.max(0, parsed.score))
-        : 5,
+        ? Math.min(100, Math.max(0, parsed.score))
+        : 50,
 
-    tips: Array.isArray(parsed.tips)
-      ? parsed.tips
-      : [],
-
+    tips: Array.isArray(parsed.tips) ? parsed.tips : [],
     professionalSummary:
-      typeof parsed.professionalSummary === 'string'
-        ? parsed.professionalSummary
-        : '',
+      typeof parsed.professionalSummary === 'string' ? parsed.professionalSummary : '',
   };
 }
 
 router.post('/analyse', async (req, res) => {
   try {
-    // -------------------------
-    // Validate input
-    // -------------------------
+    // Validate
     const errors = validatePayload(req.body);
-
     if (errors.length > 0) {
-      return res.status(400).json({
-        error: 'Validation failed',
-        details: errors,
-      });
+      return res.status(400).json({ error: 'Validation failed', details: errors });
     }
 
-    // -------------------------
-    // Sanitise input
-    // -------------------------
+    // Sanitise
     const jobTitle = sanitise(req.body.jobTitle);
     const skills = sanitise(req.body.skills);
     const experience = sanitise(req.body.experience);
@@ -111,83 +91,61 @@ Education:
 ${education || 'Not provided'}
 
 Your task:
-1. Identify top skills required
-2. Identify missing skills
-3. Give resume score out of 10
+1. Identify top skills required for this role
+2. Identify skills missing from the candidate
+3. Give a resume score out of 100
 4. Give 3–5 actionable tips
-5. Suggest professional summary
+5. Suggest a professional summary
 
 Respond ONLY in JSON format:
 
 {
   "requiredSkills": ["skill1"],
   "missingSkills": ["skill1"],
-  "score": 7,
+  "score": 72,
   "tips": ["tip1"],
   "professionalSummary": "summary"
 }
 `;
 
-    const completion =
-      await groq.chat.completions.create({
-        model: 'llama-3.1-8b-instant',
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        temperature: 0.7,
-        max_tokens: 1000,
-      });
+    const completion = await groq.chat.completions.create({
+      model: 'llama-3.1-8b-instant',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.7,
+      max_tokens: 1000,
+    });
 
-    const raw =
-      completion.choices?.[0]?.message?.content || '';
+    const raw = completion.choices?.[0]?.message?.content || '';
+    const analysis = safeParseGroqResponse(raw);
 
-    const analysis =
-      safeParseGroqResponse(raw);
+    // FIX: Save analysis result to MongoDB
+    try {
+      await Resume.findOneAndUpdate(
+        { targetRole: jobTitle },
+        { $set: { analysis } },
+        { new: true }
+      );
+    } catch (dbErr) {
+      console.warn('DB save skipped:', dbErr.message);
+    }
 
     return res.json(analysis);
   } catch (err) {
     console.error('Error:', err.message);
 
-    // Invalid API key
-    if (
-      err.message?.toLowerCase().includes('api key')
-    ) {
-      return res.status(500).json({
-        error: 'Invalid API key.',
-      });
+    if (err.message?.toLowerCase().includes('api key')) {
+      return res.status(500).json({ error: 'Invalid API key.' });
     }
 
-    // Rate limit
-    if (
-      err.status === 429 ||
-      err.message?.toLowerCase().includes('rate')
-    ) {
-      return res.status(429).json({
-        error:
-          'Rate limit reached. Wait a moment.',
-      });
+    if (err.status === 429 || err.message?.toLowerCase().includes('rate')) {
+      return res.status(429).json({ error: 'Rate limit reached. Wait a moment.' });
     }
 
-    // AI parse failure
-    if (
-      err.message?.includes(
-        'No JSON in AI response'
-      )
-    ) {
-      return res.status(502).json({
-        error:
-          'AI response format was invalid.',
-      });
+    if (err.message?.includes('No JSON in AI response')) {
+      return res.status(502).json({ error: 'AI response format was invalid.' });
     }
 
-    // Generic fallback
-    return res.status(500).json({
-      error:
-        'Analysis failed. Please try again.',
-    });
+    return res.status(500).json({ error: 'Analysis failed. Please try again.' });
   }
 });
 
