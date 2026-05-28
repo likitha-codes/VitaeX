@@ -1,23 +1,43 @@
-import logo from './logo.svg';
-import './App.css';
+import React from "react";
+import ScoreCard from "./components/AI/ScoreCard";
+import AIsuggestions from "./components/AI/AIsuggestions";
 
 function App() {
+  const scoreData = {
+    overallScore: 78,
+    breakdown: {
+      Skills: 82,
+      Experience: 74,
+      Education: 69,
+    },
+  };
+
+  const aiData = {
+    skillGaps: [
+      "Docker",
+      "Kubernetes",
+      "AWS",
+    ],
+    suggestions: [
+      "Add more measurable achievements",
+      "Include deployment projects",
+      "Improve ATS keywords",
+    ],
+  };
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div
+      style={{
+        padding: "40px",
+        background: "#f3f4f6",
+        minHeight: "100vh",
+      }}
+    >
+      <h1>AI Resume Analysis</h1>
+
+      <ScoreCard scoreData={scoreData} />
+
+      <AIsuggestions aiData={aiData} />
     </div>
   );
 }
