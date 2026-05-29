@@ -32,7 +32,19 @@ export default function ResumeResultPage({ form }) {
     win.print();
     win.close();
   };
-
+const handleAnalyse = async () => {
+  try {
+    const response = await fetch("http://localhost:5000/api/analyse", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+    const data = await response.json();
+    navigate("/analysis", { state: { result: data } });
+  } catch (error) {
+    console.error("Analysis failed:", error);
+  }
+};
   return (
     <div style={{ minHeight: "100vh", background: "#F0EBE0" }}>
       <ParticleBackground />
@@ -56,7 +68,7 @@ export default function ResumeResultPage({ form }) {
             <Btn outline small onClick={() => navigate("/build")}>← Edit</Btn>
             <Btn small onClick={handleDownload}>Download PDF</Btn>
             <Btn small onClick={() => navigate("/edit")}>Edit Resume</Btn>
-            <Btn small onClick={() => navigate("/analysis")}>Analyse Resume</Btn>
+            <Btn small onClick={handleAnalyse}>Analyse Resume</Btn>
           </div>
         </div>
 

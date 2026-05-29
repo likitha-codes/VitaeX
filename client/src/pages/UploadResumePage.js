@@ -34,6 +34,21 @@ export default function UploadResumePage() {
   const onDragOver = (e) => { e.preventDefault(); setDragging(true); };
   const onDragLeave = ()  => setDragging(false);
 
+const handleAnalyse = async () => {
+  if (!file) return;
+  const formData = new FormData();
+  formData.append("resume", file);
+  try {
+    const response = await fetch("http://localhost:5000/api/upload", {
+      method: "POST",
+      body: formData,
+    });
+    const data = await response.json();
+    navigate("/analysis", { state: { result: data } });
+  } catch (error) {
+    console.error("Upload failed:", error);
+  }
+};
   return (
     <div style={{ minHeight: "100vh", background: "#F0EBE0", position: "relative" }}>
       <ParticleBackground />
@@ -149,7 +164,7 @@ export default function UploadResumePage() {
           <div style={{ display: "flex", gap: "1rem", justifyContent: "center" }}>
             <Btn outline onClick={() => navigate("/")}>← Back</Btn>
             <Btn
-              onClick={() => file && navigate("/analysis", { state: { file } })}
+              onClick={handleAnalyse}
               outline={!file}
             >
               {file ? "Analyse Resume →" : "Select a file first"}
