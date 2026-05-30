@@ -245,15 +245,6 @@ Paste a company's actual job description to get:
 
 ---
 
-## 👥 Team
-
-| Name | Role |
-|---|---|
-| Likitha Sri | Full Stack & Backend |
-| Nandana Bekkem | Frontend & UI |
-
----
-
 ## 📄 License
 
 This project is licensed under the MIT License.
@@ -261,5 +252,5 @@ This project is licensed under the MIT License.
 ---
 
 <div align="center">
-Built with ❤️ for GSSoC 2026
+Empowering job seekers with AI — one resume at a time.
 </div>
