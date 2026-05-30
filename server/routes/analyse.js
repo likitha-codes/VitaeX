@@ -22,7 +22,7 @@ Education: ${education || 'Not provided'}
 Your task:
 1. Identify the top skills required for "${jobTitle}" in the current job market
 2. Identify the skill gaps (skills they are missing)
-3. Give a resume score out of 10
+3. Evaluate the resume honestly and give a score out of 100 based on how well the candidate's actual skills, experience, and education match the requirements of "${jobTitle}". The score must reflect the real strength of the resume — do not default to 72. A strong match should score 8-10, an average match 5-7, and a weak match below 5.
 4. Give 3-5 specific, actionable improvement tips
 5. Suggest a professional summary they can use
 
@@ -30,7 +30,7 @@ Respond ONLY in this JSON format with no extra text:
 {
   "requiredSkills": ["skill1", "skill2"],
   "missingSkills": ["skill1", "skill2"],
-  "score": 7,
+  "score": ["score out of 100"],
   "tips": ["tip1", "tip2", "tip3"],
   "professionalSummary": "A motivated..."
 }

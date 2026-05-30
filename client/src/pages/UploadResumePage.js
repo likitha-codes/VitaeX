@@ -8,11 +8,14 @@ import Btn from "../components/Btn";
 import { WINE, WINE_MUTED, BEIGE_DARK, BEIGE_BORDER, TEXT_MID } from "../components/styles/constants";
 
 export default function UploadResumePage() {
-  const navigate   = useNavigate();
-  const inputRef   = useRef(null);
-  const [file, setFile]       = useState(null);
+  const navigate  = useNavigate();
+  const inputRef  = useRef(null);
+
+  const [file, setFile]         = useState(null);
   const [dragging, setDragging] = useState(false);
-  const [error, setError]     = useState("");
+  const [error, setError]       = useState("");
+  const [jobTitle, setJobTitle] = useState("");
+  const [loading, setLoading]   = useState(false);
 
   const handleFile = (f) => {
     if (!f) return;
@@ -31,24 +34,51 @@ export default function UploadResumePage() {
     handleFile(e.dataTransfer.files[0]);
   };
 
-  const onDragOver = (e) => { e.preventDefault(); setDragging(true); };
+  const onDragOver  = (e) => { e.preventDefault(); setDragging(true); };
   const onDragLeave = ()  => setDragging(false);
 
-const handleAnalyse = async () => {
-  if (!file) return;
-  const formData = new FormData();
-  formData.append("resume", file);
-  try {
-    const response = await fetch("http://localhost:5000/api/upload", {
-      method: "POST",
-      body: formData,
-    });
-    const data = await response.json();
-    navigate("/analysis", { state: { result: data } });
-  } catch (error) {
-    console.error("Upload failed:", error);
-  }
-};
+  const handleAnalyse = async () => {
+    if (!file) {
+      setError("Please select a PDF file.");
+      return;
+    }
+    if (!jobTitle.trim() || jobTitle.trim().length < 2) {
+      setError("Please enter the role you are applying for.");
+      return;
+    }
+
+    setError("");
+    setLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("resume", file);
+      formData.append("jobTitle", jobTitle.trim());
+
+      const response = await fetch("http://localhost:5000/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || "Analysis failed. Please try again.");
+        setLoading(false);
+        return;
+      }
+
+      navigate("/analysis", { state: { result: data } });
+    } catch (err) {
+      console.error("Upload failed:", err);
+      setError("Cannot connect to backend. Make sure the server is running on port 5000.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const canAnalyse = file && jobTitle.trim().length >= 2;
+
   return (
     <div style={{ minHeight: "100vh", background: "#F0EBE0", position: "relative" }}>
       <ParticleBackground />
@@ -77,7 +107,7 @@ const handleAnalyse = async () => {
             Upload Your Resume
           </h2>
           <p style={{ color: TEXT_MID, fontSize: "0.9rem", marginBottom: "2rem" }}>
-            PDF format only. Your resume will be sent for analysis.
+            PDF format only. Your resume will be analysed against your target role.
           </p>
 
           {/* Drop zone */}
@@ -120,33 +150,26 @@ const handleAnalyse = async () => {
             />
           </div>
 
-          {/* Error */}
-          {error && (
-            <p style={{ color: "#c0392b", fontSize: "0.85rem", marginBottom: "1rem" }}>
-              ⚠ {error}
-            </p>
-          )}
-
           {/* File info pill */}
           {file && (
             <div style={{
-              background:   BEIGE_DARK,
-              border:       `1px solid ${BEIGE_BORDER}`,
-              borderRadius: "4px",
-              padding:      "0.7rem 1rem",
-              marginBottom: "1.5rem",
-              display:      "flex",
+              background:     BEIGE_DARK,
+              border:         `1px solid ${BEIGE_BORDER}`,
+              borderRadius:   "4px",
+              padding:        "0.7rem 1rem",
+              marginBottom:   "1.5rem",
+              display:        "flex",
               justifyContent: "space-between",
-              alignItems:   "center",
-              fontSize:     "0.85rem",
-              color:        TEXT_MID,
+              alignItems:     "center",
+              fontSize:       "0.85rem",
+              color:          TEXT_MID,
             }}>
               <span>📎 &nbsp;{file.name}</span>
               <span style={{ color: WINE_MUTED }}>
                 {(file.size / 1024).toFixed(1)} KB
               </span>
               <button
-                onClick={() => setFile(null)}
+                onClick={(e) => { e.stopPropagation(); setFile(null); }}
                 style={{
                   background: "transparent",
                   border:     "none",
@@ -160,14 +183,53 @@ const handleAnalyse = async () => {
             </div>
           )}
 
+          {/* Job Title Input */}
+          <div style={{ marginBottom: "1.5rem", textAlign: "left" }}>
+            <label style={{
+              display:      "block",
+              fontFamily:   "Georgia, serif",
+              color:        WINE,
+              fontSize:     "0.9rem",
+              marginBottom: "0.4rem",
+            }}>
+              Role you are applying for
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. Frontend Developer, Data Analyst..."
+              value={jobTitle}
+              onChange={e => setJobTitle(e.target.value)}
+              style={{
+                width:        "100%",
+                padding:      "0.7rem 1rem",
+                border:       `1px solid ${BEIGE_BORDER}`,
+                borderRadius: "4px",
+                fontSize:     "0.9rem",
+                fontFamily:   "Georgia, serif",
+                color:        TEXT_MID,
+                background:   "#fff",
+                outline:      "none",
+                boxSizing:    "border-box",
+              }}
+            />
+          </div>
+
+          {/* Error */}
+          {error && (
+            <p style={{ color: "#c0392b", fontSize: "0.85rem", marginBottom: "1rem" }}>
+              ⚠ {error}
+            </p>
+          )}
+
           {/* Actions */}
           <div style={{ display: "flex", gap: "1rem", justifyContent: "center" }}>
             <Btn outline onClick={() => navigate("/")}>← Back</Btn>
             <Btn
               onClick={handleAnalyse}
-              outline={!file}
+              disabled={loading}
+              outline={!canAnalyse}
             >
-              {file ? "Analyse Resume →" : "Select a file first"}
+              {loading ? "Analysing..." : canAnalyse ? "Analyse Resume →" : "Upload PDF & enter role"}
             </Btn>
           </div>
 

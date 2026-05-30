@@ -13,31 +13,50 @@ export default function ResumeResultPage({ form }) {
   const previewRef = useRef(null);
 
   const handleDownload = () => {
-    const printContents = previewRef.current.innerHTML;
-    const win = window.open("", "_blank");
-    win.document.write(`
-      <html>
-        <head>
-          <title>${form.name || "Resume"} — VitaeX</title>
-          <style>
-            @page { size: A4; margin: 0; }
-            body  { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; }
-          </style>
-        </head>
-        <body>${printContents}</body>
-      </html>
-    `);
-    win.document.close();
-    win.focus();
-    win.print();
-    win.close();
-  };
+  const printContents = previewRef.current.innerHTML;
+  const printWindow = window.open("", "_blank");
+  
+  if (!printWindow) {
+    alert("Please allow popups for this site to download the PDF.");
+    return;
+  }
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>${form.name || "Resume"} — VitaeX</title>
+        <style>
+          @page { size: A4; margin: 15mm 18mm; }
+* { box-sizing: border-box; }
+body { 
+  margin: 0; 
+  padding: 0; 
+  font-family: Arial, Helvetica, sans-serif;
+  width: 210mm;
+  max-width: 210mm;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #111;
+}
+        </style>
+      </head>
+      <body>${printContents}</body>
+    </html>
+  `);
+  printWindow.document.close();
+  printWindow.focus();
+  setTimeout(() => {
+    printWindow.print();
+    printWindow.close();
+  }, 500);
+};
 const handleAnalyse = async () => {
   try {
     const response = await fetch("http://localhost:5000/api/analyse", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ jobTitle: form.headline, skills: form.skills, experience: form.experience, education: form.education,}),
     });
     const data = await response.json();
     navigate("/analysis", { state: { result: data } });
@@ -69,6 +88,7 @@ const handleAnalyse = async () => {
             <Btn small onClick={handleDownload}>Download PDF</Btn>
             <Btn small onClick={() => navigate("/edit")}>Edit Resume</Btn>
             <Btn small onClick={handleAnalyse}>Analyse Resume</Btn>
+            <Btn small onClick={() => navigate("/templates")}>Choose Template</Btn>
           </div>
         </div>
 
