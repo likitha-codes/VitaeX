@@ -6,7 +6,8 @@ import LandingPage from "./pages/LandingPage";
 import BuildResumePage from "./pages/BuildResumePage";
 import ResumeResultPage from "./pages/ResumeResultPage";
 import UploadResumePage from "./pages/UploadResumePage";
-import ResumeEditor     from "./components/ResumeEditor";
+import AnalysisPage from "./pages/AnalysisPage";
+import ResumeEditor from "./components/ResumeEditor";
 
 const DEFAULT_FORM = {
   name:           "",
@@ -31,11 +32,12 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/"       element={<LandingPage />} />
-        <Route path="/build"  element={<BuildResumePage  form={form} setForm={setForm} />} />
-        <Route path="/result" element={<ResumeResultPage form={form} />} />
-        <Route path="/upload" element={<UploadResumePage />} />
-        <Route path="/edit"   element={<ResumeEditor form={form} setForm={setForm} />} />
+        <Route path="/"        element={<LandingPage />} />
+        <Route path="/build"   element={<BuildResumePage  form={form} setForm={setForm} />} />
+        <Route path="/result"  element={<ResumeResultPage form={form} />} />
+        <Route path="/upload"  element={<UploadResumePage />} />
+        <Route path="/analysis" element={<AnalysisPage />} />
+        <Route path="/edit"    element={<ResumeEditor form={form} setForm={setForm} />} />
       </Routes>
     </BrowserRouter>
   );

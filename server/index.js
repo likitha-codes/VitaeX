@@ -13,6 +13,9 @@ app.use(express.json());
 const analyseRoute = require('./routes/analyse');
 app.use('/api', analyseRoute);
 
+const uploadRoute = require('./routes/upload');
+app.use('/api', uploadRoute);
+
 // MongoDB - optional, won't crash if it fails
 mongoose.connect(process.env.MONGO_URI, {
   serverSelectionTimeoutMS: 5000,
