@@ -6,7 +6,6 @@ const PDFParser = require('pdf2json');
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-// Store file in memory (no disk writes)
 const upload = multer({ storage: multer.memoryStorage() });
 
 // -------------------------
@@ -15,16 +14,11 @@ const upload = multer({ storage: multer.memoryStorage() });
 function extractTextFromPDF(buffer) {
   return new Promise((resolve, reject) => {
     const pdfParser = new PDFParser(null, 1);
-
-    pdfParser.on('pdfParser_dataError', (err) => {
-      reject(new Error(err.parserError));
-    });
-
+    pdfParser.on('pdfParser_dataError', (err) => reject(new Error(err.parserError)));
     pdfParser.on('pdfParser_dataReady', () => {
       const text = pdfParser.getRawTextContent();
       resolve(text);
     });
-
     pdfParser.parseBuffer(buffer);
   });
 }
@@ -33,10 +27,14 @@ function extractTextFromPDF(buffer) {
 // Safe AI response parser
 // -------------------------
 function safeParseGroqResponse(raw) {
-  const match = raw.match(/\{[\s\S]*\}/);
+  const cleaned = raw.replace(/```json|```/g, "").trim();
+  const match = cleaned.match(/\{[\s\S]*\}/);
   if (!match) throw new Error('No JSON in AI response');
 
   const parsed = JSON.parse(match[0]);
+
+  // Handle all possible capitalisations of ATSbreakdown
+  const atsBD = parsed.ATSbreakdown || parsed.atsBreakdown || parsed.ATSBreakdown || {};
 
   return {
     requiredSkills: Array.isArray(parsed.requiredSkills) ? parsed.requiredSkills : [],
@@ -44,10 +42,25 @@ function safeParseGroqResponse(raw) {
     score:
       typeof parsed.score === 'number'
         ? Math.min(100, Math.max(0, parsed.score))
+        : typeof parsed.score === 'string' && !isNaN(parsed.score)
+        ? Math.min(100, Math.max(0, parseInt(parsed.score)))
         : 50,
     tips: Array.isArray(parsed.tips) ? parsed.tips : [],
     professionalSummary:
       typeof parsed.professionalSummary === 'string' ? parsed.professionalSummary : '',
+    atsBreakdown: {
+      skillsMatch:      parseInt(atsBD.skillsMatch)      || 0,
+      formatting:       parseInt(atsBD.formatting)        || 0,
+      keywords:         parseInt(atsBD.keywords)          || 0,
+      experienceImpact: parseInt(atsBD.experienceImpact)  || 0,
+    },
+    sectionStrengths: {
+      professionalSummary: parseInt(parsed.sectionStrengths?.professionalSummary) || 0,
+      projects:            parseInt(parsed.sectionStrengths?.projects)             || 0,
+      experience:          parseInt(parsed.sectionStrengths?.experience)           || 0,
+      skills:              parseInt(parsed.sectionStrengths?.skills)               || 0,
+      education:           parseInt(parsed.sectionStrengths?.education)            || 0,
+    },
   };
 }
 
@@ -57,21 +70,17 @@ function safeParseGroqResponse(raw) {
 router.post('/upload', upload.single('resume'), async (req, res) => {
   console.log('--- /api/upload hit ---');
   console.log('File received:', req.file ? req.file.originalname : 'NO FILE');
-  console.log('Body:', req.body);
 
   try {
-    // 1. Check file
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded.' });
     }
 
-    // 2. Check job title
     const jobTitle = (req.body.jobTitle || '').trim();
     if (!jobTitle || jobTitle.length < 2) {
       return res.status(400).json({ error: 'jobTitle is required.' });
     }
 
-    // 3. Extract text from PDF
     let resumeText = '';
     try {
       console.log('Parsing PDF buffer of size:', req.file.buffer.length);
@@ -87,7 +96,6 @@ router.post('/upload', upload.single('resume'), async (req, res) => {
       return res.status(422).json({ error: 'PDF appears to be empty or scanned. Please upload a text-based PDF.' });
     }
 
-    // 4. Send to Groq
     const prompt = `
 You are an expert career counsellor and resume coach.
 
@@ -99,18 +107,37 @@ ${resumeText}
 Your task:
 1. Identify top skills required for this role
 2. Identify skills missing from the candidate's resume
-3. 3. Evaluate the resume honestly and give a score out of 100 based on how well the candidate's actual skills, experience, and education match the requirements of the target role. The score must reflect the real strength of the resume — do not default to 72. A strong match should score 80+, an average match 50 to 75, and a weak match below 50.
+3. Evaluate the resume honestly and give a score out of 100. Do NOT default to 72. A strong match = 80-95, average match = 50-75, weak match = 20-49. Base the score purely on how well this specific resume matches this specific role.
 4. Give 3-5 actionable improvement tips
 5. Suggest a professional summary for this candidate
+6. Give an honest ATS breakdown score (0-100) for each. Do NOT return the same number for all:
+   - skillsMatch: how well their skills match the role
+   - formatting: how clean and ATS-readable the resume is
+   - keywords: how many relevant keywords appear
+   - experienceImpact: how strong and quantified the experience is
+7. Give an honest strength score (0-100) for each section. Do NOT return the same number for all:
+   - professionalSummary, projects, experience, skills, education
 
-Respond ONLY in JSON format:
-
+Respond ONLY with a valid JSON object. No markdown, no extra text, no code blocks:
 {
   "requiredSkills": ["skill1", "skill2"],
   "missingSkills": ["skill1", "skill2"],
-  "score": ["score out of 100"],
+  "score": 65,
   "tips": ["tip1", "tip2"],
-  "professionalSummary": "summary here"
+  "professionalSummary": "summary here",
+  "ATSbreakdown": {
+    "skillsMatch": 70,
+    "formatting": 85,
+    "keywords": 60,
+    "experienceImpact": 55
+  },
+  "sectionStrengths": {
+    "professionalSummary": 75,
+    "projects": 80,
+    "experience": 65,
+    "skills": 70,
+    "education": 90
+  }
 }
 `;
 
@@ -118,15 +145,14 @@ Respond ONLY in JSON format:
     const completion = await groq.chat.completions.create({
       model: 'llama-3.1-8b-instant',
       messages: [{ role: 'user', content: prompt }],
-      temperature: 0.7,
+      temperature: 1.0,
       max_tokens: 1000,
     });
 
     const raw = completion.choices?.[0]?.message?.content || '';
-    console.log('RAW GROQ RESPONSE:', raw);
-    console.log('PARSED SCORE:', safeParseGroqResponse(raw).score);
-    console.log('Groq response received, length:', raw.length);
+    console.log('FULL RAW RESPONSE:', raw);
     const analysis = safeParseGroqResponse(raw);
+    console.log('FINAL ANALYSIS:', JSON.stringify(analysis));
 
     return res.json(analysis);
 

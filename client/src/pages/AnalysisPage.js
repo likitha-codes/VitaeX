@@ -4,25 +4,37 @@ import { useLocation, useNavigate } from "react-router-dom";
 import ParticleBackground from "../components/ParticleBackground";
 import NavBar from "../components/NavBar";
 import Btn from "../components/Btn";
+import ATSbreakdown from "../components/ATSbreakdown";
+import ResumeStrengthMeter from "../components/ResumeStrengthMeter";
 import { WINE, WINE_MUTED, BEIGE_DARK, BEIGE_BORDER, TEXT_MID } from "../components/styles/constants";
 
 export default function AnalysisPage() {
   const location = useLocation();
   const navigate  = useNavigate();
   const result    = location.state?.result;
+  const jobTitle  = location.state?.jobTitle || "your target role";
 
   if (!result) {
     return (
       <div style={{ minHeight: "100vh", background: "#F0EBE0", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ textAlign: "center" }}>
           <p style={{ color: WINE, fontFamily: "Georgia, serif", fontSize: "1.2rem" }}>No analysis data found.</p>
-          <Btn onClick={() => navigate("/upload")} style={{ marginTop: "1rem" }}>Go Back</Btn>
+          <Btn onClick={() => navigate("/upload")}>Go Back</Btn>
         </div>
       </div>
     );
   }
 
-  const { score, requiredSkills, missingSkills, tips, professionalSummary } = result;
+  const {
+    score,
+    requiredSkills,
+    missingSkills,
+    tips,
+    professionalSummary,
+    hasJobDescription,
+    atsBreakdown     = {},
+    sectionStrengths = {},
+  } = result;
 
   const scoreColor =
     score >= 75 ? "#2e7d32" :
@@ -35,11 +47,11 @@ export default function AnalysisPage() {
       <NavBar />
 
       <div style={{
-        position:      "relative",
-        zIndex:        1,
-        maxWidth:      "760px",
-        margin:        "0 auto",
-        padding:       "6rem 2rem 4rem",
+        position: "relative",
+        zIndex:   1,
+        maxWidth: "760px",
+        margin:   "0 auto",
+        padding:  "6rem 2rem 4rem",
       }}>
 
         {/* Heading */}
@@ -53,18 +65,46 @@ export default function AnalysisPage() {
         }}>
           Resume Analysis
         </h2>
-        <p style={{ color: WINE_MUTED, textAlign: "center", fontSize: "0.9rem", marginBottom: "2.5rem" }}>
-          Here's how your resume stacks up for your target role.
-        </p>
+
+        {/* Context badge */}
+        <div style={{ textAlign: "center", marginBottom: "2.5rem" }}>
+          {hasJobDescription ? (
+            <span style={{
+              display:      "inline-block",
+              background:   "#e8f5e9",
+              color:        "#2e7d32",
+              border:       "1px solid #a5d6a7",
+              borderRadius: "99px",
+              padding:      "0.3rem 1rem",
+              fontSize:     "0.8rem",
+              fontWeight:   500,
+            }}>
+              ✓ Tailored to specific job description — {jobTitle}
+            </span>
+          ) : (
+            <span style={{
+              display:      "inline-block",
+              background:   "#fff8e1",
+              color:        "#f57c00",
+              border:       "1px solid #ffe082",
+              borderRadius: "99px",
+              padding:      "0.3rem 1rem",
+              fontSize:     "0.8rem",
+              fontWeight:   500,
+            }}>
+              General analysis for {jobTitle}
+            </span>
+          )}
+        </div>
 
         {/* Score Card */}
         <div style={{
-          background:    "#fff",
-          border:        `1px solid ${BEIGE_BORDER}`,
-          borderRadius:  "6px",
-          padding:       "2rem",
-          textAlign:     "center",
-          marginBottom:  "1.5rem",
+          background:   "#fff",
+          border:       `1px solid ${BEIGE_BORDER}`,
+          borderRadius: "6px",
+          padding:      "2rem",
+          textAlign:    "center",
+          marginBottom: "1.5rem",
         }}>
           <p style={{ color: TEXT_MID, fontSize: "0.85rem", marginBottom: "0.5rem", letterSpacing: "1px", textTransform: "uppercase" }}>Resume Score</p>
           <div style={{
@@ -88,11 +128,25 @@ export default function AnalysisPage() {
               transition:   "width 1s ease",
             }} />
           </div>
+
+          {!hasJobDescription && (
+            <p style={{ color: WINE_MUTED, fontSize: "0.78rem", marginTop: "1rem" }}>
+              💡 Paste a job description for a more accurate, company-specific score.
+            </p>
+          )}
         </div>
+
+        {/* ATS Breakdown */}
+        <ATSbreakdown score={score} breakdown={atsBreakdown} />
+
+        {/* Resume Strength Meter */}
+        <ResumeStrengthMeter sectionStrengths={sectionStrengths} />
 
         {/* Required Skills */}
         <div style={cardStyle}>
-          <h3 style={sectionTitle}>Required Skills for This Role</h3>
+          <h3 style={sectionTitle}>
+            {hasJobDescription ? "Skills Required by This Job Description" : "Required Skills for This Role"}
+          </h3>
           <div style={tagContainer}>
             {requiredSkills.map((skill, i) => (
               <span key={i} style={{ ...tag, background: "#e8f5e9", color: "#2e7d32", border: "1px solid #a5d6a7" }}>
@@ -104,7 +158,9 @@ export default function AnalysisPage() {
 
         {/* Missing Skills */}
         <div style={cardStyle}>
-          <h3 style={sectionTitle}>Skills Missing from Your Resume</h3>
+          <h3 style={sectionTitle}>
+            {hasJobDescription ? "Missing Keywords & Skills from Job Description" : "Skills Missing from Your Resume"}
+          </h3>
           {missingSkills.length === 0 ? (
             <p style={{ color: "#2e7d32", fontSize: "0.9rem" }}>🎉 Great! No major skills missing.</p>
           ) : (
@@ -120,7 +176,9 @@ export default function AnalysisPage() {
 
         {/* Tips */}
         <div style={cardStyle}>
-          <h3 style={sectionTitle}>Actionable Tips</h3>
+          <h3 style={sectionTitle}>
+            {hasJobDescription ? "Tips to Tailor Your Resume for This Role" : "Actionable Tips"}
+          </h3>
           <ol style={{ paddingLeft: "1.2rem", margin: 0 }}>
             {tips.map((tip, i) => (
               <li key={i} style={{ color: TEXT_MID, fontSize: "0.9rem", marginBottom: "0.6rem", lineHeight: 1.6 }}>
@@ -133,7 +191,9 @@ export default function AnalysisPage() {
         {/* Professional Summary */}
         {professionalSummary && (
           <div style={cardStyle}>
-            <h3 style={sectionTitle}>Suggested Professional Summary</h3>
+            <h3 style={sectionTitle}>
+              {hasJobDescription ? "Suggested Summary for This Application" : "Suggested Professional Summary"}
+            </h3>
             <p style={{ color: TEXT_MID, fontSize: "0.9rem", lineHeight: 1.7, margin: 0, fontStyle: "italic" }}>
               "{professionalSummary}"
             </p>
@@ -151,12 +211,10 @@ export default function AnalysisPage() {
   );
 }
 
-// -------------------------
-// Styles
-// -------------------------
+// ── Styles ─────────────────────────────────────────────────────────────────
 const cardStyle = {
   background:   "#fff",
-  border:       `1px solid #E2D9CC`,
+  border:       "1px solid #E2D9CC",
   borderRadius: "6px",
   padding:      "1.5rem",
   marginBottom: "1.5rem",
@@ -172,9 +230,9 @@ const sectionTitle = {
 };
 
 const tagContainer = {
-  display:   "flex",
-  flexWrap:  "wrap",
-  gap:       "0.5rem",
+  display:  "flex",
+  flexWrap: "wrap",
+  gap:      "0.5rem",
 };
 
 const tag = {

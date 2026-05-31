@@ -1,5 +1,3 @@
-// VitaeX/client/src/pages/UploadResumePage.js
-
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import ParticleBackground from "../components/ParticleBackground";
@@ -11,11 +9,12 @@ export default function UploadResumePage() {
   const navigate  = useNavigate();
   const inputRef  = useRef(null);
 
-  const [file, setFile]         = useState(null);
-  const [dragging, setDragging] = useState(false);
-  const [error, setError]       = useState("");
-  const [jobTitle, setJobTitle] = useState("");
-  const [loading, setLoading]   = useState(false);
+  const [file, setFile]               = useState(null);
+  const [dragging, setDragging]       = useState(false);
+  const [error, setError]             = useState("");
+  const [jobTitle, setJobTitle]       = useState("");
+  const [jobDescription, setJobDescription] = useState("");
+  const [loading, setLoading]         = useState(false);
 
   const handleFile = (f) => {
     if (!f) return;
@@ -54,6 +53,7 @@ export default function UploadResumePage() {
       const formData = new FormData();
       formData.append("resume", file);
       formData.append("jobTitle", jobTitle.trim());
+      formData.append("jobDescription", jobDescription.trim());
 
       const response = await fetch("http://localhost:5000/api/upload", {
         method: "POST",
@@ -68,7 +68,7 @@ export default function UploadResumePage() {
         return;
       }
 
-      navigate("/analysis", { state: { result: data } });
+      navigate("/analysis", { state: { result: data, jobTitle: jobTitle.trim() } });
     } catch (err) {
       console.error("Upload failed:", err);
       setError("Cannot connect to backend. Make sure the server is running on port 5000.");
@@ -78,6 +78,19 @@ export default function UploadResumePage() {
   };
 
   const canAnalyse = file && jobTitle.trim().length >= 2;
+
+  const inputStyle = {
+    width:        "100%",
+    padding:      "0.7rem 1rem",
+    border:       `1px solid ${BEIGE_BORDER}`,
+    borderRadius: "4px",
+    fontSize:     "0.9rem",
+    fontFamily:   "Georgia, serif",
+    color:        TEXT_MID,
+    background:   "#fff",
+    outline:      "none",
+    boxSizing:    "border-box",
+  };
 
   return (
     <div style={{ minHeight: "100vh", background: "#F0EBE0", position: "relative" }}>
@@ -94,7 +107,7 @@ export default function UploadResumePage() {
         minHeight:      "100vh",
         padding:        "6rem 2rem 4rem",
       }}>
-        <div style={{ maxWidth: "520px", width: "100%", textAlign: "center" }}>
+        <div style={{ maxWidth: "560px", width: "100%", textAlign: "center" }}>
 
           {/* Heading */}
           <h2 style={{
@@ -107,7 +120,7 @@ export default function UploadResumePage() {
             Upload Your Resume
           </h2>
           <p style={{ color: TEXT_MID, fontSize: "0.9rem", marginBottom: "2rem" }}>
-            PDF format only. Your resume will be analysed against your target role.
+            PDF format only. Paste the job description for a targeted analysis.
           </p>
 
           {/* Drop zone */}
@@ -184,6 +197,26 @@ export default function UploadResumePage() {
           )}
 
           {/* Job Title Input */}
+          <div style={{ marginBottom: "1.2rem", textAlign: "left" }}>
+            <label style={{
+              display:      "block",
+              fontFamily:   "Georgia, serif",
+              color:        WINE,
+              fontSize:     "0.9rem",
+              marginBottom: "0.4rem",
+            }}>
+              Role you are applying for <span style={{ color: "#c0392b" }}>*</span>
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. Frontend Developer, Data Analyst..."
+              value={jobTitle}
+              onChange={e => setJobTitle(e.target.value)}
+              style={inputStyle}
+            />
+          </div>
+
+          {/* Job Description Textarea */}
           <div style={{ marginBottom: "1.5rem", textAlign: "left" }}>
             <label style={{
               display:      "block",
@@ -192,32 +225,28 @@ export default function UploadResumePage() {
               fontSize:     "0.9rem",
               marginBottom: "0.4rem",
             }}>
-              Role you are applying for
+              Job Description <span style={{ color: WINE_MUTED, fontSize: "0.8rem" }}>(optional but recommended)</span>
             </label>
-            <input
-              type="text"
-              placeholder="e.g. Frontend Developer, Data Analyst..."
-              value={jobTitle}
-              onChange={e => setJobTitle(e.target.value)}
+            <textarea
+              placeholder="Paste the job description from the company's listing here. This gives you a more targeted analysis tailored to the specific company's requirements..."
+              value={jobDescription}
+              onChange={e => setJobDescription(e.target.value)}
+              rows={6}
               style={{
-                width:        "100%",
-                padding:      "0.7rem 1rem",
-                border:       `1px solid ${BEIGE_BORDER}`,
-                borderRadius: "4px",
-                fontSize:     "0.9rem",
-                fontFamily:   "Georgia, serif",
-                color:        TEXT_MID,
-                background:   "#fff",
-                outline:      "none",
-                boxSizing:    "border-box",
+                ...inputStyle,
+                resize:     "vertical",
+                lineHeight: "1.6",
               }}
             />
+            <p style={{ color: WINE_MUTED, fontSize: "0.78rem", margin: "0.3rem 0 0", textAlign: "right" }}>
+              {jobDescription.length} characters
+            </p>
           </div>
 
           {/* Error */}
           {error && (
             <p style={{ color: "#c0392b", fontSize: "0.85rem", marginBottom: "1rem" }}>
-              ⚠ {error}
+              ⚠️ {error}
             </p>
           )}
 

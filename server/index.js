@@ -12,7 +12,6 @@ app.use(express.json());
 // Routes
 const analyseRoute = require('./routes/analyse');
 app.use('/api', analyseRoute);
-
 const uploadRoute = require('./routes/upload');
 app.use('/api', uploadRoute);
 
