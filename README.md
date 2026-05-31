@@ -16,7 +16,7 @@
 
 ---
 
-## 🌍 Product Overview
+## Product Overview
 
 **VitaeX** is a full-stack AI-powered resume analyser and skill gap tool that empowers job seekers to build, edit, and analyse their resumes against specific job roles — or even specific company job descriptions.
 
@@ -26,28 +26,61 @@ Most job seekers don't know why they're getting rejected. They send the same res
 ### The Solution
 VitaeX gives every job seeker access to AI-powered career coaching — something previously only available to those who could afford professional resume consultants.
 
-### 🎯 UN SDG Alignment
-**SDG 8 — Decent Work and Economic Growth**
-VitaeX directly supports SDG 8 by reducing barriers to employment. By helping job seekers identify and bridge skill gaps, VitaeX contributes to reducing unemployment and enabling access to quality jobs — especially for first-generation job seekers and students who can't afford career coaching.
+### UN SDG Alignment — SDG 8: Decent Work and Economic Growth
+
+VitaeX directly supports **SDG 8** by reducing barriers to employment. By helping job seekers identify and bridge skill gaps, VitaeX contributes to reducing unemployment and enabling access to quality jobs — especially for first-generation job seekers and students who can't afford career coaching.
 
 ---
 
-## ✨ Features
+## Screenshots
+
+### 🏠 Home Page
+![Home Page](screenshots/homepage.png)
+
+### 📝 Resume Builder
+![Resume Builder](screenshots/builder.png)
+
+### ✏️ Inline Resume Editor
+![Resume Editor](screenshots/editing.png)
+
+### 🎨 Choose a Template
+![Templates](screenshots/templates.png)
+
+### 📄 Resume Result & PDF Download
+![Resume Result](screenshots/result.png)
+
+### 📤 Upload Resume
+![Upload Resume](screenshots/uploadresume.png)
+
+### 📊 AI Analysis — Resume Score & ATS Breakdown
+![Analysis](screenshots/analysis.png)
+
+### 💪 Resume Strength Meter
+![Section Wise](screenshots/sectionwise.png)
+
+### 💡 Skills & Suggestions
+![Suggestions](screenshots/suggestions.png)
+
+---
+
+## Features
 
 | Feature | Description |
 |---|---|
 | 📝 Resume Builder | Build a professional resume from scratch with guided form inputs |
 | ✏️ Inline Resume Editor | Edit any section of your resume directly in the live preview |
+| 🎨 Resume Templates | Choose from Classic, Modern, or Split layout templates |
 | 📄 PDF Download | Export your resume as a polished PDF with one click |
-| 📤 Resume Upload | Upload an existing PDF resume for instant analysis |
+| 📤 Resume Upload | Upload an existing PDF resume for instant AI analysis |
 | 🤖 AI Analysis | Get a resume score, missing skills, and actionable tips powered by Groq AI |
 | 🎯 Job Description Matching | Paste a company's job description for a targeted, company-specific analysis |
-| 📊 Skill Gap Report | See exactly which skills you have vs. what the role requires |
+| 📊 ATS Breakdown | Analyzes your resume section-by-section to improve ATS compatibility and increase visibility to recruiters |
+| 💪 Resume Strength Meter | Measures the overall impact, quality, and effectiveness of your resume with actionable insights |
 | 💡 Professional Summary | AI-generated professional summary tailored to your target role |
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technology | Reason |
 |---|---|---|
@@ -63,7 +96,7 @@ VitaeX directly supports SDG 8 by reducing barriers to employment. By helping jo
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -78,10 +111,10 @@ VitaeX directly supports SDG 8 by reducing barriers to employment. By helping jo
 │  │ Resume      │  │ Upload      │  │ Analysis        │ │
 │  │ Builder     │  │ Resume Page │  │ Page            │ │
 │  └─────────────┘  └─────────────┘  └─────────────────┘ │
-│  ┌─────────────┐  ┌─────────────┐                       │
-│  │ Live        │  │ Resume      │                       │
-│  │ Preview     │  │ Editor      │                       │
-│  └─────────────┘  └─────────────┘                       │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐ │
+│  │ Live        │  │ Resume      │  │ Template        │ │
+│  │ Preview     │  │ Editor      │  │ Selector        │ │
+│  └─────────────┘  └─────────────┘  └─────────────────┘ │
 └──────────────────────┬──────────────────────────────────┘
                        │ HTTP REST API
                        ▼
@@ -102,7 +135,7 @@ VitaeX directly supports SDG 8 by reducing barriers to employment. By helping jo
 
 ---
 
-## 🚀 Installation Guide
+## Installation Guide
 
 ### Prerequisites
 - Node.js v18+
@@ -115,7 +148,7 @@ VitaeX directly supports SDG 8 by reducing barriers to employment. By helping jo
 ```bash
 git clone https://github.com/likitha-codes/VitaeX.git
 cd VitaeX
-git checkout frontend
+git checkout main
 ```
 
 ### 2. Set Up the Backend
@@ -159,7 +192,7 @@ The app will open at [http://localhost:3000](http://localhost:3000)
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 VitaeX/
@@ -175,6 +208,7 @@ VitaeX/
 │       ├── pages/
 │       │   ├── LandingPage.js       # Home page
 │       │   ├── BuildResumePage.js   # Resume builder
+│       │   ├── TemplatePage.js      # Template selector
 │       │   ├── ResumeResultPage.js  # Resume preview + download
 │       │   ├── UploadResumePage.js  # PDF upload + job description
 │       │   └── AnalysisPage.js      # AI analysis results
@@ -191,7 +225,7 @@ VitaeX/
 
 ---
 
-## 🔄 User Flow
+## User Flow
 
 ```
 Landing Page
@@ -200,6 +234,9 @@ Landing Page
      │         │
      │         ▼
      │    Fill in details (name, skills, experience, projects...)
+     │         │
+     │         ▼
+     │    Choose Template (Classic / Modern / Split)
      │         │
      │         ▼
      │    Live Preview → Edit Inline → Download PDF
@@ -213,16 +250,18 @@ Landing Page
           Upload PDF + Enter Role + (Optional) Paste Job Description
                │
                ▼
-          AI Analysis → Score + Missing Skills + Tips + Summary
+          AI Analysis → ATS Score + Strength Meter + Missing Skills + Tips
 ```
 
 ---
 
-## 🤖 AI Analysis Features
+## AI Analysis Features
 
 When you analyse a resume, VitaeX returns:
 
 - **Resume Score** — out of 100, based on role match
+- **ATS Compatibility Score** — overall ATS score with breakdown by Skills Match, Formatting, Keywords, Experience Impact
+- **Resume Strength Meter** — visual strength bars for each section (Summary, Projects, Experience, Skills, Education)
 - **Required Skills** — what the role demands
 - **Missing Skills** — what's absent from your resume
 - **Actionable Tips** — 3–5 specific improvements
@@ -233,15 +272,6 @@ Paste a company's actual job description to get:
 - ATS keyword matching against that specific JD
 - Company-specific skill gap analysis
 - Tailored tips for that exact application
-
----
-
-## 🌐 Deployment
-
-| Service | Platform | URL |
-|---|---|---|
-| Frontend | Vercel | Coming soon |
-| Backend | Render | Coming soon |
 
 ---
 
