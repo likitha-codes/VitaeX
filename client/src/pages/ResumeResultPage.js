@@ -34,7 +34,7 @@ export default function ResumeResultPage({ form }) {
   };
 const handleAnalyse = async () => {
   try {
-    const response = await fetch("http://localhost:5000/api/analyse", {
+    const response = await fetch("https://vitaex.onrender.com/api/analyse", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form),

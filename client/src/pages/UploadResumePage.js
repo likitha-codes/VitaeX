@@ -55,7 +55,7 @@ export default function UploadResumePage() {
       formData.append("resume", file);
       formData.append("jobTitle", jobTitle.trim());
 
-      const response = await fetch("http://localhost:5000/api/upload", {
+      const response = await fetch("https://vitaex.onrender.com/api/upload", {
         method: "POST",
         body: formData,
       });
@@ -71,7 +71,7 @@ export default function UploadResumePage() {
       navigate("/analysis", { state: { result: data } });
     } catch (err) {
       console.error("Upload failed:", err);
-      setError("Cannot connect to backend. Make sure the server is running on port 5000.");
+      setError("Cannot connect to the server. Please try again later.");
     } finally {
       setLoading(false);
     }
