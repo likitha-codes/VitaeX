@@ -15,6 +15,9 @@ app.use('/api', analyseRoute);
 const uploadRoute = require('./routes/upload');
 app.use('/api', uploadRoute);
 
+const uploadRoute = require('./routes/upload');
+app.use('/api', uploadRoute);
+
 // MongoDB - optional, won't crash if it fails
 mongoose.connect(process.env.MONGO_URI, {
   serverSelectionTimeoutMS: 5000,

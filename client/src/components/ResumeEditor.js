@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Btn from "./Btn";
-import { WINE, WINE_MUTED, BEIGE_BORDER } from "./styles/constants";
+import { WINE, WINE_MUTED } from "./styles/constants";
 
 // ── Inline editable field ──────────────────────────────────────────────────
 // Click to edit, blur to save. Renders as plain text when not editing.
