@@ -1,25 +1,48 @@
-import logo from './logo.svg';
-import './App.css';
+// VitaeX/client/src/App.js
 
-function App() {
+import { useState } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import LandingPage from "./pages/LandingPage";
+import BuildResumePage from "./pages/BuildResumePage";
+import ResumeResultPage from "./pages/ResumeResultPage";
+import UploadResumePage from "./pages/UploadResumePage";
+import AnalysisPage from "./pages/AnalysisPage";
+import ResumeEditor from "./components/ResumeEditor";
+import TemplateSelector from "./components/TemplateSelector";
+import TemplatePage     from "./pages/TemplatePage";
+
+const DEFAULT_FORM = {
+  name:           "",
+  email:          "",
+  phone:          "",
+  location:       "",
+  linkedin:       "",
+  portfolio:      "",
+  headline:       "",
+  summary:        "",
+  skills:         [""],
+  experience:     [{ company: "", role: "", duration: "", description: "" }],
+  education:      [{ institution: "", degree: "", year: "", cgpa: "" }],
+  projects:       [{ name: "", description: "", tech: "" }],
+  certifications: "",
+  languages:      "",
+};
+
+export default function App() {
+  const [form, setForm] = useState(DEFAULT_FORM);
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/"        element={<LandingPage />} />
+        <Route path="/build"   element={<BuildResumePage  form={form} setForm={setForm} />} />
+        <Route path="/result"  element={<ResumeResultPage form={form} />} />
+        <Route path="/upload"  element={<UploadResumePage />} />
+        <Route path="/analysis" element={<AnalysisPage />} />
+        <Route path="/edit"    element={<ResumeEditor form={form} setForm={setForm} />} />
+        <Route path="/templates"    element={<TemplateSelector />} />
+<Route path="/template/:id" element={<TemplatePage form={form} />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
-
-export default App;
