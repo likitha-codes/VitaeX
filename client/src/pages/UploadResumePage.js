@@ -37,45 +37,56 @@ export default function UploadResumePage() {
   const onDragLeave = ()  => setDragging(false);
 
   const handleAnalyse = async () => {
-    if (!file) {
-      setError("Please select a PDF file.");
-      return;
-    }
-    if (!jobTitle.trim() || jobTitle.trim().length < 2) {
-      setError("Please enter the role you are applying for.");
-      return;
-    }
+  if (!file) {
+    setError("Please select a PDF file.");
+    return;
+  }
 
-    setError("");
-    setLoading(true);
+  if (!jobTitle.trim() || jobTitle.trim().length < 2) {
+    setError("Please enter the role you are applying for.");
+    return;
+  }
 
-    try {
-      const formData = new FormData();
-      formData.append("resume", file);
-      formData.append("jobTitle", jobTitle.trim());
-      formData.append("jobDescription", jobDescription.trim());
+  setError("");
+  setLoading(true);
 
-      const response = await fetch("http://localhost:5000/api/upload", {
+  try {
+    const formData = new FormData();
+    formData.append("resume", file);
+    formData.append("jobTitle", jobTitle.trim());
+    formData.append("jobDescription", jobDescription.trim());
+
+    const response = await fetch(
+      "https://vitaex.onrender.com/api/upload",
+      {
         method: "POST",
         body: formData,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || "Analysis failed. Please try again.");
-        setLoading(false);
-        return;
       }
+    );
 
-      navigate("/analysis", { state: { result: data, jobTitle: jobTitle.trim() } });
-    } catch (err) {
-      console.error("Upload failed:", err);
-      setError("Cannot connect to backend. Make sure the server is running on port 5000.");
-    } finally {
+    const data = await response.json();
+
+    if (!response.ok) {
+      setError(data.error || "Analysis failed. Please try again.");
       setLoading(false);
+      return;
     }
-  };
+
+    navigate("/analysis", {
+      state: {
+        result: data,
+        jobTitle: jobTitle.trim(),
+      },
+    });
+  } catch (err) {
+    console.error("Upload failed:", err);
+    setError(
+      "Cannot connect to the VitaeX backend. Please try again."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   const canAnalyse = file && jobTitle.trim().length >= 2;
 
