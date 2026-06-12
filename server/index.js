@@ -22,9 +22,11 @@ app.use(express.json());
 // Routes
 // -------------------------
 const analyseRoute = require('./routes/analyse');
+const uploadRoute = require('./routes/upload');
 const resumeRoute = require('./routes/resume');
 
 app.use('/api', analyseRoute);
+app.use('/api', uploadRoute);
 app.use('/api/resume', resumeRoute);
 
 // -------------------------
