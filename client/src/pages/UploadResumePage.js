@@ -66,18 +66,20 @@ export default function UploadResumePage() {
 
     const data = await response.json();
 
-    if (!response.ok) {
-      setError(data.error || "Analysis failed. Please try again.");
-      setLoading(false);
-      return;
-    }
+console.log("BACKEND RESPONSE:", data);
 
-    navigate("/analysis", {
-      state: {
-        result: data,
-        jobTitle: jobTitle.trim(),
-      },
-    });
+if (!response.ok) {
+  setError(data.error || "Analysis failed. Please try again.");
+  setLoading(false);
+  return;
+}
+
+navigate("/analysis", {
+  state: {
+    result: data,
+    jobTitle: jobTitle.trim(),
+  },
+});
   } catch (err) {
     console.error("Upload failed:", err);
     setError(

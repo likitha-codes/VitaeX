@@ -545,11 +545,21 @@ function AnalysePage({ source, resumeData, onBack }) {
         ?.map(e => `${e.degree} from ${e.institution} (${e.year})`)
         .filter(Boolean).join(", ") || "";
 
-      const response = await fetch("http://localhost:5000/api/analyse", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobTitle, skills, experience, education }),
-      });
+      const response = await fetch(
+  "https://vitaex.onrender.com/api/analyse",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      jobTitle,
+      skills,
+      experience,
+      education,
+    }),
+  }
+);
 
       if (!response.ok) throw new Error(`Server error: ${response.status}`);
       const data = await response.json();
